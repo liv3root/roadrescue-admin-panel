@@ -1637,7 +1637,9 @@ td.col-amount .amt-currency {
 
 <script type="module">
 // ── Config ───────────────────────────────────────────────────────────────────
-const API = `${location.protocol}//${location.hostname}${location.port?':'+location.port:''}/v1`;
+// Hardcoded to the active ngrok backend — update when tunnel changes.
+// Static hosting (Vercel) cannot derive this from location.hostname.
+const API = 'https://081e-31-141-33-82.ngrok-free.app/v1';
 
 // ── State ────────────────────────────────────────────────────────────────────
 let _jwt = sessionStorage.getItem('rr_admin_token');
@@ -1658,16 +1660,26 @@ const _pag = {
 };
 
 // ── Firebase ──────────────────────────────────────────────────────────────────
+// Config is embedded directly — safe to do (these are public client identifiers,
+// not secrets). Fetching from the backend is not viable on static hosting because
+// the backend URL may not be reachable before the user provides credentials.
+const _FB_CFG = {
+  apiKey:            'AIzaSyBYOtJo3y99zx4-IUDkZ-aFpP9ZkkDqojE',
+  authDomain:        'roadrescue-5810a.firebaseapp.com',
+  projectId:         'roadrescue-5810a',
+  storageBucket:     'roadrescue-5810a.appspot.com',
+  messagingSenderId: '110105253316',
+  appId:             '1:110105253316:web:dbc798cc0099ea6a34c091',
+};
 async function initFirebase() {
   try {
-    const r = await fetch(`${API}/admin/firebase-config`);
-    const b = await r.json(); const cfg = b.data ?? b;
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js');
     const { getAuth, signInWithEmailAndPassword, signOut } = await import('https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js');
-    const app = initializeApp(cfg, 'admin'); const auth = getAuth(app);
+    const app  = initializeApp(_FB_CFG, 'admin');
+    const auth = getAuth(app);
     _fbSignIn  = (e, p) => signInWithEmailAndPassword(auth, e, p);
     _fbSignOut = () => signOut(auth);
-  } catch(e) { showLoginErr('Firebase yapılandırması yüklenemedi.'); }
+  } catch(e) { showLoginErr('Firebase başlatılamadı: ' + (e.message ?? e)); }
 }
 
 // ── API helper ────────────────────────────────────────────────────────────────
