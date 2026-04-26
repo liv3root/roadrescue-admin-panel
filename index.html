@@ -144,6 +144,12 @@ tbody tr:hover td{background:rgba(110,168,254,.06);cursor:pointer;}
 .badge.cancelled,.badge.failed,.badge.suspended{background:var(--red-dim);border-color:var(--red-bd);color:var(--red);}
 .badge.requested,.badge.expired,.badge.refunded,.badge.superseded{background:var(--purple-dim);border-color:var(--purple-bd);color:var(--purple);}
 .badge.waiting_payment{background:var(--amber-dim);border-color:var(--amber-bd);color:var(--amber);}
+/* Admin role badges */
+.badge.super_admin{background:var(--purple-dim);border-color:var(--purple-bd);color:var(--purple);}
+.badge.admin{background:var(--blue-dim);border-color:var(--blue-bd);color:var(--blue);}
+.badge.support{background:var(--surface3);border-color:var(--border2);color:var(--text2);}
+.badge.operations{background:var(--amber-dim);border-color:var(--amber-bd);color:var(--amber);}
+.badge.finance{background:var(--green-dim);border-color:var(--green-bd);color:var(--green);}
 
 /* ANALYTICS */
 .analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
@@ -1001,6 +1007,14 @@ td.col-amount .amt-currency {
         </button>
       </div>
 
+      <!-- Yönetim (super_admin only) -->
+      <div class="nav-group" id="nav-group-admins" style="display:none">
+        <span class="nav-group-label">Yönetim</span>
+        <button class="nav-item" id="nav-admins" onclick="showSection('admins')">
+          <ion-icon name="people-outline"></ion-icon>Admin Kullanıcıları
+        </button>
+      </div>
+
     </nav>
 
     <div class="content">
@@ -1528,6 +1542,33 @@ td.col-amount .amt-currency {
           </table>
         </div>
       </div>
+      <!-- ADMIN USERS -->
+      <div class="section" id="section-admins">
+        <div class="page-title">
+          <ion-icon name="people-outline" style="font-size:20px;color:var(--amber)"></ion-icon>
+          Admin Kullanıcıları
+          <button class="btn-sm primary" style="margin-left:auto" onclick="openAdminCreate()">
+            <ion-icon name="person-add-outline"></ion-icon> Admin Ekle
+          </button>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header">
+            <span class="table-title">Yetkili Kullanıcılar</span>
+            <button class="btn-sm" onclick="loadAdminUsers()"><ion-icon name="refresh-outline"></ion-icon> Yenile</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Ad Soyad</th><th>E-posta</th><th>Rol</th><th>Durum</th>
+                <th>Son Giriş</th><th>Oluşturulma</th><th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody id="admins-tbody">
+              <tr class="loading-row"><td colspan="7">Yükleniyor…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div><!-- /content -->
   </div><!-- /workspace -->
 </div><!-- /app -->
@@ -1632,6 +1673,62 @@ td.col-amount .amt-currency {
   </div>
 </div>
 
+<!-- ADMIN CREATE MODAL -->
+<div id="admin-create-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);align-items:center;justify-content:center;z-index:200">
+  <div class="modal" style="width:460px;gap:14px">
+    <div class="modal-title">👤 Admin Ekle</div>
+    <div class="field"><label>Ad Soyad</label><input id="ac-name" class="de-input" placeholder="Ahmet Yılmaz"></div>
+    <div class="field"><label>E-posta</label><input id="ac-email" type="email" class="de-input" placeholder="admin@roadrescue.io"></div>
+    <div class="field">
+      <label>Parola <span style="font-size:10px;color:var(--text3);font-weight:400">(Firebase'de oluşturulur — hiçbir yerde saklanmaz)</span></label>
+      <input id="ac-pass" type="password" class="de-input" placeholder="En az 8 karakter" autocomplete="new-password">
+    </div>
+    <div class="field"><label>Rol</label>
+      <select id="ac-role" class="de-input">
+        <option value="admin">Admin</option>
+        <option value="super_admin">Süper Admin</option>
+      </select>
+    </div>
+    <div class="field"><label>Durum</label>
+      <select id="ac-active" class="de-input">
+        <option value="true">Aktif</option>
+        <option value="false">Pasif</option>
+      </select>
+    </div>
+    <div id="ac-err" style="color:var(--red);font-size:12px;min-height:16px"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAdminCreate()">İptal</button>
+      <button id="ac-save-btn" class="btn-approve" onclick="submitAdminCreate()">Oluştur</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN EDIT MODAL -->
+<div id="admin-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);align-items:center;justify-content:center;z-index:200">
+  <div class="modal" style="width:460px;gap:14px">
+    <div class="modal-title">✏️ Admin Düzenle</div>
+    <input type="hidden" id="ae-id">
+    <div class="field"><label>Ad Soyad</label><input id="ae-name" class="de-input"></div>
+    <div class="field"><label>Rol</label>
+      <select id="ae-role" class="de-input">
+        <option value="admin">Admin</option>
+        <option value="super_admin">Süper Admin</option>
+      </select>
+    </div>
+    <div class="field"><label>Durum</label>
+      <select id="ae-active" class="de-input">
+        <option value="true">Aktif</option>
+        <option value="false">Pasif</option>
+      </select>
+    </div>
+    <div id="ae-err" style="color:var(--red);font-size:12px;min-height:16px"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAdminEdit()">İptal</button>
+      <button id="ae-save-btn" class="btn-approve" onclick="submitAdminEdit()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
 
 <div class="toast" id="toast"></div>
 
@@ -1649,11 +1746,25 @@ const _NGROK_HDR = _IS_LOCAL ? {} : { 'ngrok-skip-browser-warning': 'true' };
 // ── State ────────────────────────────────────────────────────────────────────
 let _jwt = sessionStorage.getItem('rr_admin_token');
 let _adminEmail = sessionStorage.getItem('rr_admin_email');
+let _adminRole = null; // populated from JWT payload after login / restore
 let _fbSignIn, _fbSignOut;
 let _currentSection = 'dashboard';
 let _rejectTarget = null;
 let _drvDetailData = null;
 let _currentDriverId = null;
+
+// ── JWT helpers ─────────────────────────────────────────────────────────────
+function parseJwtPayload(token) {
+  try { return JSON.parse(atob(token.split('.')[1])); } catch { return {}; }
+}
+function updateSuperAdminVisibility() {
+  const isSA = _adminRole === 'super_admin';
+  const grp = document.getElementById('nav-group-admins');
+  if (grp) grp.style.display = isSA ? '' : 'none';
+}
+function adminRoleL(r) {
+  return { super_admin:'Süper Admin', admin:'Admin' }[r] ?? r ?? '—';
+}
 
 // Cached last-fetched lists for CSV export
 const _cache = { drivers: [], customers: [], requests: [], finance: null };
@@ -1712,6 +1823,7 @@ window.doLogin = async () => {
     const b = await res.json();
     if (!res.ok) { showLoginErr(b?.message ?? 'Giriş başarısız.'); return; }
     _jwt = (b.data ?? b).accessToken; _adminEmail = email;
+    _adminRole = parseJwtPayload(_jwt).adminRole ?? null;
     sessionStorage.setItem('rr_admin_token', _jwt);
     sessionStorage.setItem('rr_admin_email', email);
     enterApp();
@@ -1747,6 +1859,9 @@ function enterApp() {
   // 3. Show the app
   document.getElementById('app').classList.add('visible');
   document.getElementById('admin-email-lbl').textContent = _adminEmail;
+  // Parse adminRole from stored JWT and toggle super-admin-only nav item
+  _adminRole = parseJwtPayload(_jwt ?? '').adminRole ?? null;
+  updateSuperAdminVisibility();
   showSection('dashboard');
 }
 
@@ -1762,7 +1877,7 @@ window.showSection = (name) => {
   ({ dashboard:loadOverview, pending:loadPending, drivers:loadDrivers,
      customers:loadCustomers, requests:loadRequests, finance:loadFinance, analytics:loadAnalytics,
      map:loadMap, reviews:loadReviews, audit:loadAudit, ops:loadOps, support:loadSupportTickets,
-     payouts:loadPayoutRequests, alerts:loadAlertsPage })[name]?.();
+     payouts:loadPayoutRequests, alerts:loadAlertsPage, admins:loadAdminUsers })[name]?.();
 };
 
 // ── Global search ─────────────────────────────────────────────────────────────
@@ -1931,11 +2046,11 @@ function _renderHealthStrip(d, metrics) {
     openSupport > 0 ? "showSection('support')" : ''
   );
 
-  // Pending payments (PROCESSING, not yet confirmed by callback) — warn if ≥ 3
+  // Pending payments — requests where job is done but customer hasn't paid yet
   html += tile(
     '⏳', fmt(pendingPay), 'Bekleyen Ödeme',
     pendingPay >= 3 ? 'warn' : '',
-    ''
+    pendingPay > 0 ? "showSection('requests')" : ''
   );
 
   // Queue failures per queue (from metrics, if available)
@@ -1970,8 +2085,10 @@ function _renderHealthStrip(d, metrics) {
       }
     });
   } else {
-    // Metrics not yet loaded — show placeholder
-    html += tile('📬', '…', 'Queue Hataları', '', '');
+    // metrics===null → initial render, still loading
+    // metrics!==null but no queues → endpoint inaccessible, show N/A
+    html += tile('📬', metrics === null ? '…' : 'N/A', 'Queue Hataları', '',
+      '', 'Queue takibi henüz bağlı değil');
   }
 
   strip.innerHTML = html;
@@ -1984,7 +2101,9 @@ async function _loadHealthMetrics(d) {
     _renderHealthStrip(d, metrics);
   } catch {
     // /internal/metrics may not be accessible from the browser (IP-gated).
-    // Silently fall back — health strip already shows overview data.
+    // Re-render with queue data marked unavailable so the tile shows 'N/A'
+    // instead of staying stuck at '…'.
+    _renderHealthStrip(d, { queues: null });
   }
 }
 
@@ -2037,7 +2156,7 @@ window.loadEventStream = async () => {
       }
       return `<div ${clickAttr}>
         <div class="event-icon ${cfg.cls}"><ion-icon name="${cfg.icon}"></ion-icon></div>
-        <div class="event-msg">${esc(e.message)}</div>
+        <div class="event-msg">${esc(localizeEventMsg(e.message))}</div>
         <div class="event-time">${_relTime(e.at)}</div>
       </div>`;
     }).join('');
@@ -2898,7 +3017,7 @@ async function _loadPersistedTimeline(requestId) {
             ${delta ? `<span class="tl-delta">${delta}</span>` : ''}
             <span style="margin-left:auto;font-size:9.5px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--text3)">kayıtlı</span>
           </div>
-          ${e.message ? `<div class="tl-detail">${esc(e.message)}</div>` : ''}
+          ${e.message ? `<div class="tl-detail">${esc(localizeEventMsg(e.message))}</div>` : ''}
           <div class="tl-time">${e.createdAt ? fmtDateLong(e.createdAt) : '—'}
             ${actor ? `<span style="margin-left:8px;font-size:10px;color:var(--text3)">· ${actor}</span>` : ''}
           </div>
@@ -3793,6 +3912,15 @@ const vStatusL   = s => ({ pending:'Beklemede', approved:'Onaylı',   rejected:'
 const dStatusL   = s => ({ offline:'Çevrimdışı', online:'Çevrimiçi', busy:'Meşgul'           }[s] ?? s);
 const serviceL   = s => ({ tow:'Çekici', tire_change:'Lastik Değişimi', battery_jump:'Akü Takviyesi', fuel_delivery:'Yakıt Teslimi', lockout:'Araç Kilit Açma' }[s] ?? s ?? '—');
 const serviceTypeL = serviceL; // alias — ops center uses serviceTypeL, CSV export uses serviceL
+// Translates raw service-type enum tokens inside backend-generated event messages.
+// e.g. "Talep oluşturuldu — tow" → "Talep oluşturuldu — Çekici"
+const localizeEventMsg = msg => {
+  if (!msg) return '';
+  return msg.replace(
+    /\b(tow|tire_change|battery_jump|fuel_delivery|lockout|unknown)\b/g,
+    t => serviceL(t),
+  );
+};
 const reqStatusL = s => ({ requested:'Talep', accepted:'Kabul', arriving:'Geliyor', on_scene:'Sahada', started:'Başladı', in_progress:'Devam', waiting_payment:'Ödeme Bekliyor', completed:'Tamamlandı', cancelled:'İptal', expired:'Süresi Doldu', no_driver_found:'Sürücü Bulunamadı' }[s] ?? s);
 const payStatusL = s => ({ pending:'Beklemede', processing:'İşleniyor', completed:'Tamamlandı', failed:'Başarısız', refunded:'İade' }[s] ?? s);
 const dvTypeL    = s => ({ tow_small:'Küçük Kurtarıcı', tow_flatbed:'Flatbed', tow_heavy:'Ağır Kurtarıcı', service_van:'Servis Aracı' }[s] ?? s ?? '—');
@@ -5000,6 +5128,128 @@ async function payoutReject(id) {
 window.loadPayoutRequests = loadPayoutRequests;
 window.payoutApprove = payoutApprove;
 window.payoutReject  = payoutReject;
+
+// ── Admin User Management ───────────────────────────────────────────────────
+
+async function loadAdminUsers() {
+  const tb = document.getElementById('admins-tbody');
+  if (!tb) return;
+  tb.innerHTML = '<tr class="loading-row"><td colspan="7"><span class="spin">⧳</span> Yükleniyor…</td></tr>';
+  try {
+    const data = await api('GET', '/admin/admin-users');
+    const admins = Array.isArray(data) ? data : (data.data ?? []);
+    const fmtD  = d => d ? new Date(d).toLocaleDateString('tr-TR') : '—';
+    const fmtDT = d => d ? new Date(d).toLocaleString('tr-TR', {dateStyle:'short', timeStyle:'short'}) : '—';
+    tb.innerHTML = admins.length === 0
+      ? '<tr><td colspan="7" class="table-empty"><span class="empty-ico">👤</span>Admin kullanıcısı yok</td></tr>'
+      : admins.map(u => `<tr>
+          <td><strong>${u.fullName}</strong></td>
+          <td style="font-family:monospace;font-size:12px">${u.email}</td>
+          <td><span class="badge ${u.adminRole}">${adminRoleL(u.adminRole)}</span></td>
+          <td><span class="badge ${u.isActive ? 'approved' : 'suspended'}">${u.isActive ? 'Aktif' : 'Pasif'}</span></td>
+          <td>${fmtDT(u.lastLoginAt)}</td>
+          <td>${fmtD(u.createdAt)}</td>
+          <td style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn-sm" onclick='openAdminEdit(${JSON.stringify(u)})'>Düzenle</button>
+            ${u.isActive
+              ? `<button class="btn-sm danger" onclick="disableAdmin('${u.id}')">Pasife Al</button>`
+              : `<button class="btn-sm primary" onclick="enableAdmin('${u.id}')">Aktifleştir</button>`}
+            <button class="btn-sm" onclick="resetAdminPassword('${u.id}','${u.email}')">Parola Sıfırla</button>
+          </td>
+        </tr>`).join('');
+  } catch(e) {
+    tb.innerHTML = `<tr><td colspan="7" class="table-empty" style="color:var(--red)">${e.message}</td></tr>`;
+  }
+}
+
+window.openAdminCreate = () => {
+  ['ac-name','ac-email','ac-pass'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ac-role').value = 'admin';
+  document.getElementById('ac-active').value = 'true';
+  document.getElementById('ac-err').textContent = '';
+  document.getElementById('ac-save-btn').disabled = false;
+  document.getElementById('admin-create-modal').style.display = 'flex';
+};
+window.closeAdminCreate = () => {
+  document.getElementById('admin-create-modal').style.display = 'none';
+};
+window.submitAdminCreate = async () => {
+  const btn = document.getElementById('ac-save-btn');
+  const errEl = document.getElementById('ac-err');
+  const fullName  = document.getElementById('ac-name').value.trim();
+  const email     = document.getElementById('ac-email').value.trim();
+  const password  = document.getElementById('ac-pass').value;
+  const adminRole = document.getElementById('ac-role').value;
+  const isActive  = document.getElementById('ac-active').value === 'true';
+  errEl.textContent = '';
+  if (!fullName || !email || password.length < 8) {
+    errEl.textContent = 'Ad Soyad, E-posta ve en az 8 karakter parola zorunludur.';
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Oluşturuluyor…';
+  try {
+    await api('POST', '/admin/admin-users', { fullName, email, password, adminRole, isActive });
+    window.closeAdminCreate();
+    toast('Admin kullanıcısı oluşturuldu.', 'success');
+    loadAdminUsers();
+  } catch(e) { errEl.textContent = e.message; }
+  finally { btn.disabled = false; btn.textContent = 'Oluştur'; }
+};
+
+window.openAdminEdit = (u) => {
+  document.getElementById('ae-id').value    = u.id;
+  document.getElementById('ae-name').value  = u.fullName;
+  document.getElementById('ae-role').value  = u.adminRole ?? 'admin';
+  document.getElementById('ae-active').value = String(u.isActive);
+  document.getElementById('ae-err').textContent = '';
+  document.getElementById('ae-save-btn').disabled = false;
+  document.getElementById('admin-edit-modal').style.display = 'flex';
+};
+window.closeAdminEdit = () => {
+  document.getElementById('admin-edit-modal').style.display = 'none';
+};
+window.submitAdminEdit = async () => {
+  const btn  = document.getElementById('ae-save-btn');
+  const id   = document.getElementById('ae-id').value;
+  const fullName  = document.getElementById('ae-name').value.trim();
+  const adminRole = document.getElementById('ae-role').value;
+  const isActive  = document.getElementById('ae-active').value === 'true';
+  document.getElementById('ae-err').textContent = '';
+  if (!fullName) { document.getElementById('ae-err').textContent = 'Ad Soyad boş olamaz.'; return; }
+  btn.disabled = true; btn.textContent = 'Kaydediliyor…';
+  try {
+    await api('PATCH', `/admin/admin-users/${id}`, { fullName, adminRole, isActive });
+    window.closeAdminEdit();
+    toast('Admin güncellendi.', 'success');
+    loadAdminUsers();
+  } catch(e) { document.getElementById('ae-err').textContent = e.message; }
+  finally { btn.disabled = false; btn.textContent = 'Kaydet'; }
+};
+
+window.disableAdmin = async (id) => {
+  if (!confirm('Bu admini pasife almak istediğinize emin misiniz?')) return;
+  try {
+    await api('POST', `/admin/admin-users/${id}/disable`);
+    toast('Admin pasife alındı.', 'success'); loadAdminUsers();
+  } catch(e) { toast(e.message, 'error'); }
+};
+window.enableAdmin = async (id) => {
+  try {
+    await api('POST', `/admin/admin-users/${id}/enable`);
+    toast('Admin aktifleştirildi.', 'success'); loadAdminUsers();
+  } catch(e) { toast(e.message, 'error'); }
+};
+window.resetAdminPassword = async (id, email) => {
+  if (!confirm(`${email} için parola sıfırlama bağlantısı oluşturulsun mu?`)) return;
+  try {
+    const data = await api('POST', `/admin/admin-users/${id}/reset-password`);
+    const link = data?.resetLink ?? data?.data?.resetLink ?? '';
+    prompt('Parola sıfırlama bağlantısı (kopyalayın ve ilgili admine iletin):', link);
+    toast('Bağlantı oluşturuldu.', 'success');
+  } catch(e) { toast(e.message, 'error'); }
+};
+
+window.loadAdminUsers = loadAdminUsers;
 </script>
 
 <!-- Support Ticket Drawer -->
